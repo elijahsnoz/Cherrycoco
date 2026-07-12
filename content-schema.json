@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "brand": {
+    "name": "Cherry Coco",
+    "mission": "To create a space for reflective, emotionally rich storytelling that helps people understand themselves and feel less alone."
+  },
+  "homepage": {
+    "hero": {
+      "kicker": "Arrive, do not scroll.",
+      "headline": "A quiet, beautiful space to understand yourself.",
+      "dailyLines": [
+        "Some days healing looks like naming what hurt in the first place.",
+        "You are allowed to outgrow stories that once kept you safe.",
+        "Reflection is not delay. It is how meaning is made.",
+        "The life you want might begin with one honest sentence."
+      ]
+    },
+    "featuredStory": {
+      "id": "story_week_001",
+      "title": "The Language I Found After Burnout",
+      "type": "essay",
+      "readingTimeMinutes": 14,
+      "summary": "A personal account of rebuilding identity after high achievement became emotional silence.",
+      "tags": [
+        "mental-health",
+        "identity",
+        "recovery"
+      ]
+    },
+    "pathways": [
+      {
+        "id": "clarity",
+        "label": "I need clarity",
+        "maxStories": 3,
+        "estimatedMinutes": 45,
+        "description": "Stories on emotional fog, values, and grounded decisions."
+      },
+      {
+        "id": "stuck",
+        "label": "I feel stuck",
+        "maxStories": 4,
+        "estimatedMinutes": 60,
+        "description": "Stories on transition fatigue, grief loops, and small movement."
+      },
+      {
+        "id": "seen",
+        "label": "I want to feel seen",
+        "maxStories": 5,
+        "estimatedMinutes": 70,
+        "description": "Voices about belonging, shame, tenderness, and language."
+      },
+      {
+        "id": "create",
+        "label": "I want to create",
+        "maxStories": 3,
+        "estimatedMinutes": 40,
+        "description": "Pieces on making art while healing and building honest rituals."
+      }
+    ],
+    "globalVoices": [
+      {
+        "region": "Seoul",
+        "title": "Leaving Home at 33, Against Tradition",
+        "theme": "identity"
+      },
+      {
+        "region": "Lagos",
+        "title": "What Masculinity Cost My Brother, and Me",
+        "theme": "relationships"
+      },
+      {
+        "region": "Sao Paulo",
+        "title": "Painting Through Panic in a Loud City",
+        "theme": "creativity"
+      }
+    ],
+    "closingRitual": {
+      "question": "What have you been pretending not to feel?",
+      "prompt": "Write six lines starting with: Today I can be honest about..."
+    }
+  },
+  "contentModel": {
+    "story": {
+      "required": [
+        "id",
+        "title",
+        "author",
+        "category",
+        "region",
+        "readingTimeMinutes",
+        "summary",
+        "body",
+        "publishedAt"
+      ],
+      "categories": [
+        "mental-health",
+        "relationships",
+        "identity-self-discovery",
+        "personal-growth",
+        "arts-culture-creativity"
+      ]
+    },
+    "reflectionPrompt": {
+      "required": [
+        "id",
+        "title",
+        "prompt",
+        "tone",
+        "durationMinutes"
+      ]
+    }
+  }
+}
