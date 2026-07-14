@@ -4,6 +4,7 @@ import About from "./About";
 import Homepage from "./Homepage";
 import StoryCard from "./StoryCard";
 import Article from "./Article";
+import Dashboard from "./Dashboard";
 
 const STORAGE_KEYS = {
   profile: "cherrycoco.profile.v1",
@@ -46,122 +47,6 @@ function parseLocalStorage(key, fallback) {
     return fallback;
   }
 }
-
-  function EditorModal({ isOpen, onClose, onSave, stories = [], onUpdate, onDelete }) {
-    const empty = {
-      title: "",
-      author: "",
-      category: "personal-growth",
-      region: "",
-      readingTimeMinutes: 5,
-      summary: "",
-      body: "",
-      published: false
-    };
-
-    const [form, setForm] = useState(empty);
-    const [editingId, setEditingId] = useState("");
-
-    useEffect(() => {
-      if (!isOpen) {
-        setForm(empty);
-        setEditingId("");
-      }
-    }, [isOpen]);
-
-    function startEdit(story) {
-      setEditingId(story.id);
-      setForm({ ...story, published: Boolean(story.publishedAt) });
-    }
-
-    function handleChange(e) {
-      const { name, value, type, checked } = e.target;
-      setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
-    }
-
-    async function handleSave(e) {
-      e.preventDefault();
-      if (!form.title.trim()) return;
-      // onSave may perform remote publish and return an updated entry
-      try {
-        const result = await onSave({ ...form, id: editingId || undefined });
-        // if the save returned an updated story (from server), use its values to reset
-        if (result && typeof result === "object") {
-          setForm(empty);
-          setEditingId("");
-        } else {
-          setForm(empty);
-          setEditingId("");
-        }
-      } catch (err) {
-        // swallow — keep form open so owner can retry
-        console.error("Failed to save story", err);
-      }
-    }
-
-    if (!isOpen) return null;
-
-    return (
-      <aside className="onboarding-modal is-open" role="dialog" aria-modal="true">
-        <div className="onboarding-panel">
-          <p className="eyebrow">Author Editor</p>
-          <h2>Write and publish a story</h2>
-
-          <form onSubmit={handleSave}>
-            <label>Title</label>
-            <input name="title" value={form.title} onChange={handleChange} />
-
-            <label>Author</label>
-            <input name="author" value={form.author} onChange={handleChange} />
-
-            <label>Category</label>
-            <input name="category" value={form.category} onChange={handleChange} />
-
-            <label>Region</label>
-            <input name="region" value={form.region} onChange={handleChange} />
-
-            <label>Reading time (minutes)</label>
-            <input name="readingTimeMinutes" type="number" value={form.readingTimeMinutes} onChange={handleChange} />
-
-            <label>Summary</label>
-            <input name="summary" value={form.summary} onChange={handleChange} />
-
-            <label>Body</label>
-            <textarea name="body" value={form.body} onChange={handleChange} rows={6} />
-
-            <label className="intent-option checkbox-option">
-              <input type="checkbox" name="published" checked={form.published} onChange={handleChange} />
-              <span>Publish now</span>
-            </label>
-
-            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
-              <button type="submit" className="primary">Save</button>
-              <button type="button" className="tertiary" onClick={() => { setForm(empty); setEditingId(""); onClose(); }}>Close</button>
-            </div>
-          </form>
-
-          <hr style={{ margin: "1rem 0" }} />
-
-          <h3>Existing stories</h3>
-          <div style={{ display: "grid", gap: "0.6rem" }}>
-            {stories.length === 0 && <p className="shelf-empty">No authored stories yet.</p>}
-            {stories.map((s) => (
-              <div key={s.id} style={{ border: "1px solid rgba(0,0,0,0.06)", padding: "0.6rem", borderRadius: 8 }}>
-                <strong>{s.title}</strong>
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <button type="button" className="secondary" onClick={() => startEdit(s)}>Edit</button>
-                  <button type="button" className="tertiary" onClick={() => onUpdate(s.id, { publishedAt: s.publishedAt ? null : new Date().toISOString() })}>
-                    {s.publishedAt ? "Unpublish" : "Publish"}
-                  </button>
-                  <button type="button" className="tertiary danger" onClick={() => onDelete(s.id)}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </aside>
-    );
-  }
 
 function createEntry(text) {
   return {
@@ -419,7 +304,8 @@ export default function App() {
   const [savedStories, setSavedStories] = useState(() => parseLocalStorage(STORAGE_KEYS.stories, []));
   const [slowReading, setSlowReading] = useState(false);
   const [isOwner] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("admin") === "1");
-  const [showEditor, setShowEditor] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const schema = contentData.homepage;
   const dayIndex = new Date().getDate() % schema.hero.dailyLines.length;
@@ -485,23 +371,32 @@ export default function App() {
   }
 
   async function addStory(payload) {
-    // create local entry first
+    const existing = payload.id ? savedStories.find((s) => s.id === payload.id) : null;
+
+    // build normalized entry; Cherry Coco is the default author on this platform
     const localEntry = {
       id: payload.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: payload.title,
-      author: payload.author || "Owner",
+      author: (payload.author && payload.author.trim()) || "Cherry Coco",
       category: payload.category || "personal-growth",
       region: payload.region || "",
       readingTimeMinutes: Number(payload.readingTimeMinutes) || 5,
+      image: payload.image || existing?.image || "",
       summary: payload.summary || "",
       body: payload.body || "",
-      publishedAt: payload.published ? new Date().toISOString() : null,
-      wpId: payload.wpId || null
+      // keep the original publish date when re-publishing an already-live story
+      publishedAt: payload.published
+        ? existing?.publishedAt || new Date().toISOString()
+        : null,
+      wpId: payload.wpId || existing?.wpId || null
     };
 
-    // optimistic local save
-    setSavedStories((current) => [localEntry, ...current]);
-    setShowEditor(false);
+    // optimistic local save — update in place when editing, else prepend
+    setSavedStories((current) =>
+      existing
+        ? current.map((s) => (s.id === localEntry.id ? localEntry : s))
+        : [localEntry, ...current]
+    );
 
     // attempt server publish if requested
     if (payload.published) {
@@ -563,6 +458,7 @@ export default function App() {
   // navigate to an article view and update hash for deep-linking
   function navigateToArticle(story) {
     if (!story) return;
+    setShowDashboard(false);
     setSelectedStory(story);
     setShowArticleView(true);
     try {
@@ -573,10 +469,39 @@ export default function App() {
     }
   }
 
+  function openDashboard() {
+    setNavOpen(false);
+    setShowArticleView(false);
+    setShowDashboard(true);
+    try {
+      window.location.hash = "dashboard";
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function closeDashboard() {
+    setShowDashboard(false);
+    try {
+      if ((window.location.hash || "").replace(/^#/, "") === "dashboard") {
+        if (window.history && window.history.length > 1) window.history.back();
+        else window.location.hash = "";
+      }
+    } catch (e) {
+      window.location.hash = "";
+    }
+  }
+
   // listen to hash changes so deep links work
   useEffect(() => {
     function handleHash() {
       const hash = (window.location.hash || "").replace(/^#/, "");
+      if (hash === "dashboard") {
+        setShowDashboard(true);
+        setShowArticleView(false);
+        return;
+      }
+      setShowDashboard(false);
       if (!hash) {
         setShowArticleView(false);
         setSelectedStory(null);
@@ -609,29 +534,36 @@ export default function App() {
         initialProfile={profile}
         brandName={contentData.brand?.name}
       />
-      <EditorModal
-        isOpen={showEditor}
-        onClose={() => setShowEditor(false)}
-        onSave={addStory}
-        stories={savedStories}
-        onUpdate={updateStory}
-        onDelete={removeStory}
-      />
-
       <header className="site-header">
         <p className="brand">{contentData.brand?.name || content.brand.name}</p>
-        <nav className="main-nav" aria-label="Primary">
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label="Toggle navigation"
+          aria-expanded={navOpen}
+          onClick={() => setNavOpen((o) => !o)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <nav
+          className={`main-nav ${navOpen ? "is-open" : ""}`}
+          aria-label="Primary"
+          onClick={() => setNavOpen(false)}
+        >
           <a href="#featured">Featured</a>
           <a href="#voices">Voices</a>
           <a href="#about">Our story</a>
           <a href="#shelf">Reflection Shelf</a>
         </nav>
         <div className="header-actions">
-          {isOwner && (
-            <button className="btn-ghost" onClick={() => setShowEditor(true)}>Open Editor</button>
-          )}
-          <a className="header-write" href="#shelf">Write</a>
-          <button className="btn-dark" onClick={() => setShowEditor(true)}>Get started</button>
+          <button type="button" className="header-write" onClick={openDashboard}>
+            Write
+          </button>
+          <button type="button" className="btn-dark" onClick={openDashboard}>
+            Writer Studio
+          </button>
         </div>
       </header>
 
@@ -641,7 +573,7 @@ export default function App() {
           savedStories={savedStories}
           onRead={(story) => { navigateToArticle(story); }}
           onSave={(text) => addSavedLine(text)}
-          onOpenEditor={() => setShowEditor(true)}
+          onOpenEditor={openDashboard}
         />
 
         <section id="voices" className="voices reveal">
@@ -751,6 +683,18 @@ export default function App() {
             }
             setSelectedStory(null);
           }}
+        />
+      )}
+
+      {showDashboard && (
+        <Dashboard
+          stories={savedStories}
+          brandName={contentData.brand?.name || content.brand.name}
+          onSave={addStory}
+          onUpdate={updateStory}
+          onDelete={removeStory}
+          onRead={(story) => navigateToArticle(story)}
+          onClose={closeDashboard}
         />
       )}
     </>

@@ -5,13 +5,13 @@ import HeroArt from './HeroArt';
 export default function Homepage({ contentData, savedStories, onRead, onSave, onOpenEditor }) {
   const schema = contentData.homepage || {};
   const cmsStories = (contentData.cms && contentData.cms.stories) || [];
-  const featured = cmsStories.length > 0 ? cmsStories[0] : schema.featuredStory ? schema.featuredStory : null;
+  // Cherry Coco writes first: her published stories lead the feed before anybody else's.
+  const ownerStories = (savedStories || []).filter(s => s.publishedAt);
+  const combined = [...ownerStories, ...cmsStories];
+  const featured = combined[0] || schema.featuredStory || null;
 
-  // Full feed: CMS stories + owner-published stories, minus the featured duplicate
-  const list = [
-    ...cmsStories.filter(s => !(featured && s.id === featured.id)),
-    ...savedStories.filter(s => s.publishedAt)
-  ];
+  // Full feed = everything after the featured lead
+  const list = combined.filter(s => s !== featured);
 
   // "Trending" strip — take the first handful of whatever we have to show
   const trending = [featured, ...list].filter(Boolean).slice(0, 6);
