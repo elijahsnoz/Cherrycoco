@@ -789,6 +789,41 @@ ul { margin: 0.6rem 0 0; padding-left: 1.25rem; color: var(--ink-soft); }
   outline-offset: 1px;
   border-color: transparent;
 }
+/* cover image: url input + upload + preview */
+.cover-input { display: flex; gap: 0.5rem; align-items: stretch; }
+.cover-input input { flex: 1; min-width: 0; }
+.cover-input input:disabled { background: var(--paper-2); color: var(--ink-faint); cursor: not-allowed; }
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+.upload-btn:hover { background: var(--ink); color: var(--paper); }
+.cover-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+.cover-preview img {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.cover-preview button { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
+
 .composer-status { margin: 0; font-size: 0.9rem; color: var(--accent-dark); }
 .composer-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.3rem; }
 .composer-actions button { flex: 1; min-width: 140px; }

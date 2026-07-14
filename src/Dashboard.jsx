@@ -46,6 +46,39 @@ function formatDate(value) {
   }
 }
 
+// Read an uploaded image, downscale it, and return a compact JPEG data URL.
+// Keeps stories small enough to live in localStorage (no file server on the static deploy).
+function fileToCompressedDataURL(file, { maxDim = 1400, quality = 0.82 } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!file.type || !file.type.startsWith("image/")) {
+      reject(new Error("Please choose an image file (jpg, png, webp…)."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That image could not be loaded."));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * Cherry Coco's Writer Studio — a full-page authoring dashboard.
  * She is the primary writer here: the editor defaults to her name and
@@ -111,6 +144,22 @@ export default function Dashboard({
     const { name, value, type, checked } = e.target;
     setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
   }
+
+  async function handleUpload(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // let the same file be re-selected later
+    if (!file) return;
+    setStatus("Processing image…");
+    try {
+      const dataUrl = await fileToCompressedDataURL(file);
+      setForm((f) => ({ ...f, image: dataUrl }));
+      setStatus("");
+    } catch (err) {
+      setStatus(err.message || "Could not process that image.");
+    }
+  }
+
+  const hasUploadedImage = form.image.startsWith("data:");
 
   function resetForm() {
     setForm(emptyForm());
@@ -271,17 +320,37 @@ export default function Dashboard({
                 </label>
               </div>
 
-              <label className="field">
+              <div className="field">
                 <span className="field-label">
-                  Cover image URL <span className="field-hint">optional</span>
+                  Cover image <span className="field-hint">paste a URL or upload</span>
                 </span>
-                <input
-                  name="image"
-                  value={form.image}
-                  onChange={handleChange}
-                  placeholder="https://…"
-                />
-              </label>
+                <div className="cover-input">
+                  <input
+                    name="image"
+                    value={hasUploadedImage ? "" : form.image}
+                    onChange={handleChange}
+                    placeholder={hasUploadedImage ? "Image uploaded ✓" : "https://…"}
+                    disabled={hasUploadedImage}
+                    aria-label="Cover image URL"
+                  />
+                  <label className="upload-btn">
+                    Upload
+                    <input type="file" accept="image/*" onChange={handleUpload} hidden />
+                  </label>
+                </div>
+                {form.image && (
+                  <div className="cover-preview">
+                    <img src={form.image} alt="Cover preview" />
+                    <button
+                      type="button"
+                      className="tertiary"
+                      onClick={() => setForm((f) => ({ ...f, image: "" }))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <label className="field">
                 <span className="field-label">Summary</span>
